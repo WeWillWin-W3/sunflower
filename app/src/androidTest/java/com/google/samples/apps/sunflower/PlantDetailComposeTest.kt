@@ -20,12 +20,12 @@ import android.content.ContentResolver
 import android.net.Uri
 import androidx.annotation.RawRes
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithText
 import androidx.core.net.toUri
+import androidx.lifecycle.MutableLiveData
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.accompanist.insets.ProvideWindowInsets
 import com.google.samples.apps.sunflower.compose.plantdetail.PlantDetails
@@ -56,6 +56,14 @@ class PlantDetailComposeTest {
         composeTestRule.onNodeWithContentDescription("Add plant").assertDoesNotExist()
     }
 
+    @Test
+    fun plantDetails_checkButtonClickedVisibility() {
+        startPlantDetailsParentMock(isPlanted = false)
+        composeTestRule.onNodeWithText("Apple").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Add plant").performClick()
+        composeTestRule.onNodeWithContentDescription("Add plant").assertDoesNotExist()
+    }
+
     private fun startPlantDetails(isPlanted: Boolean) {
         composeTestRule.setContent {
             ProvideWindowInsets {
@@ -67,6 +75,27 @@ class PlantDetailComposeTest {
             }
         }
     }
+
+    private fun startPlantDetailsParentMock(isPlanted: Boolean) {
+        val isPlanted = MutableLiveData(isPlanted)
+        composeTestRule.setContent {
+            ProvideWindowInsets {
+                PlantDetailsParent(isPlanted)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlantDetailsParent(isPlanted: MutableLiveData<Boolean>){
+    val isPlantedObservable = isPlanted.observeAsState()
+    PlantDetails(
+        plant = plantForTesting(),
+        isPlanted = isPlantedObservable.value!!,
+        callbacks = PlantDetailsCallbacks({
+            isPlanted.value = true
+        }, { }, { })
+    )
 }
 
 @Composable
